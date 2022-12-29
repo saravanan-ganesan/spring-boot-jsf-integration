@@ -1,0 +1,5 @@
+<p><span style="font-size:18px"><strong>401: Unauthorized Access</strong></span></p>
+
+<p><span style="font-size:12px">You have attempted to access a page for which you are not authorized.</span></p>
+
+<p><span style="font-size:12px">Please contact Admin for further details.</span></p>
