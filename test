@@ -1,0 +1,77 @@
+package com.fedex.rise.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+
+@EnableWebSecurity
+@Configuration
+public class DemoSecuurityConfig {
+
+	@Bean
+    public BCryptPasswordEncoder passwordEncoder(){
+        return new BCryptPasswordEncoder();
+    }
+
+	String[] staticResources  =  {
+	        "/css/**",
+	        "/images/**",
+	        "/js/**",
+	    };
+	
+    @Bean
+    public UserDetailsService users() {
+
+        UserDetails admin = User.builder()
+                .username("admin")
+                .password(passwordEncoder().encode("admin"))
+                .roles("ADMIN")
+                .build();
+
+        UserDetails user = User.builder()
+                .username("5412859")
+                .password(passwordEncoder().encode("password"))
+                .roles("USER")
+                .build();
+
+        return new InMemoryUserDetailsManager(user, admin);
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+    	 
+        http
+                .csrf().disable()
+
+                .authorizeRequests()
+                    .antMatchers("/login*", "/resources/**").permitAll()
+                    .antMatchers(staticResources).permitAll()
+                    .antMatchers("/admin/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+
+                .and()
+
+                .formLogin()
+
+                    .loginPage("/login")
+                    .defaultSuccessUrl("/", true)
+                    .failureUrl("/login?error=true")
+
+                .and()
+
+                .logout()
+                    .logoutSuccessUrl("/login?logout=true")
+                    .deleteCookies("JSESSIONID");
+
+       
+        return http.build();
+    }
+}
