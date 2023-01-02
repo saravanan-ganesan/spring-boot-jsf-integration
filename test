@@ -1,5 +1,127 @@
-<p><span style="font-size:18px"><strong>401: Unauthorized Access</strong></span></p>
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '2.7.5'
+	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
 
-<p><span style="font-size:12px">You have attempted to access a page for which you are not authorized.</span></p>
 
-<p><span style="font-size:12px">Please contact Admin for further details.</span></p>
+group = 'com.fedex.rise'
+version = '1.0'
+sourceCompatibility = '1.8'
+
+repositories {
+	mavenCentral()
+}
+
+configurations {
+  compileOnly {
+    extendsFrom annotationProcessor
+  }
+}
+
+apply plugin: 'org.springframework.boot'
+
+dependencies {
+	
+	implementation platform('org.springframework.boot:spring-boot-dependencies:2.7.5')
+	
+	/** Spring Boot Main Web with Tomcat Server **/
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	
+	/** ORM Persistense - JPA **/
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	
+	/** Spring Boot Cache with EHCache  **/
+	implementation group: 'org.springframework.boot' name: 'spring-boot-starter-cache' version: '2.7.5' {
+		exclude group: 'org.slf4j', module 'slf4j-api'
+	}
+	
+	implementation 'org.ehcache:ehcache:3.9.9'
+	implementation 'javax.cache:cache-api:1.1.1'
+	
+	/** Spring Boot Session Core management **/
+	implementation 'org.springframework.session:spring-session-core'
+	
+	/** Spring Security **/
+	implementation 'org.springframework.boot:spring-boot-starter-security' {
+		exclude group: 'org.springframework', module: 'spring-aop'
+	}
+	
+	/** Spring Boot Monito - Actuator **/
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	
+	/** JSF-Spring Navigation **/
+	implementation 'org.ocpsoft.rewrite:rewrite-servlet:3.5.1.Final'
+	implementation 'org.ocpsoft.rewrite:rewrite-integration-faces:3.5.1.Final'
+	implementation 'org.ocpsoft.rewrite:rewrite-config-prettyfaces:3.5.1.Final'
+	
+	/** Tomcat Embed Jasper - JSP compilation Runtime purpose **/
+	implementation 'org.apache.tomcat.embed:tomcat-embed-jasper:9.0.58'
+	
+	/** JSF **/
+	implementation 'com.sun.faces:jsf-api:2.2.20'
+	implementation 'com.sun.faces:jsf-impl:2.2.20'
+	
+	/** JSTL **/
+	implementation 'javax.servlet:jstl:1.2'
+	
+	/** Spring Aspect **/
+	implementation 'org.springframework:spring-aspects'
+	
+	/** JSF Rich Faces **/
+	implementation 'org.richfaces:richfaces:4.5.17.Final'
+	implementation 'org.richfaces:richfaces-core:4.5.17.Final'
+	implementation 'org.richfaces:richfaces-a4j:4.5.17.Final'
+	
+	/** Google Guava **/
+	implementation 'com.google.guava:guava:31.1-jre'
+	
+	/** MyFaces Tomahawk and Sandbox **/
+	implementation 'org.apache.myfaces.tomahawk:tomahawk:1.1.14'
+	implementation 'org.apache.myfaces.tomahawk:tomahawk-sandbox:1.1.6'
+	
+	/** Apache POI **/
+	implementation 'org.apache.poi:poi:3.0-FINAL'
+	
+	/** Lombok **/
+	compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
+    /** Java Portlet and EJB **/
+    compileOnly 'javax.portlet:portlet-api:3.0.1'
+    compileOnly 'javax.ejb:ejb-api:3.0'
+    
+	/** Oracle JDBC Driver **/
+    runtimeOnly 'com.oracle.database.jdbc:ojdbc8'
+    
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+tasks.named("bootJar") {
+	mainClass = 'com.fedex.rise.RiseApplication'
+	archiveClassifier = 'boot'
+}
+
+tasks.named("jar") {
+	archiveClassifier = ''
+}
+
+tasks.named("bootRun") {
+	mainClass = 'com.fedex.rise.RiseApplication'
+}
+
+publishing {
+	publications {
+		bootJava(MavenPublication) {
+			artifact tasks.named("bootJar")
+		}
+	}
+	repositories {
+		mavenCentral()
+	}
+}
