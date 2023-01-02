@@ -1,35 +1,229 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <title>Please sign in</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
-    <link href="https://getbootstrap.com/docs/4.0/examples/signin/signin.css" rel="stylesheet" crossorigin="anonymous"/>
-	<style> 
-	body {
-	  background-image: url("images/bg-image.jpeg");
+package com.fedex.rise.bean;
+
+import java.util.TimeZone;
+
+import javax.faces.context.FacesContext;
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import com.fedex.rise.annotation.JsfController;
+import com.fedex.rise.config.SpringContext;
+import com.fedex.rise.service.UserService;
+import com.fedex.rise.vo.EmployeeVO;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
+@JsfController(path = "/", page = "/pages/jsp/home.jsp", value = "homeBean")
+public class HomeBean extends BaseBean {
+
+	@Autowired
+	UserService userService;
+
+	UserBean userBean;
+	
+	@SuppressWarnings("unused")
+	private String userInfo;
+
+	private String realUserId = null;
+	private String password = null;
+	private String role = null;
+	private String firstName = null;
+	private String lastName = null;
+	private TimeZone timeZone = null;
+	private String empNbr = null;
+	private String userId = null;
+
+	public HomeBean() {}
+
+	/******************************************************************************
+	 * This is method to validate whether the user is authenticated and get the
+	 * user details based okta authentication
+	 * 
+	 * @param none
+	 * @return String
+	 * ----------------------------------------------------------------------------
+	 * Version	Date		Developer	Comments
+	 * ----------------------------------------------------------------------------
+	 * 1.0		12/25/2022	Saravanan	Initial code
+	 ******************************************************************************/
+	public String getUserInfo() {
+
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (null != authentication && !(authentication instanceof AnonymousAuthenticationToken)) {
+
+			String username = null;
+			if (authentication.getPrincipal() instanceof UserDetails) {
+				username = ((UserDetails)authentication.getPrincipal()).getUsername();
+				} else {
+				username = authentication.getPrincipal().toString();
+				}
+			//DefaultOidcUser oktaUser = (DefaultOidcUser) authentication.getPrincipal();
+			if (null != username) {
+
+				// get it from okta
+				//String oktaId = oktaUser.getUserInfo().getNickName();
+				setEmpNbr(username);
+
+				//To check whether user details are already populated and available
+				if(validateUserInfo() == false) {
+
+					// internal db call to get user details 
+					boolean userInfo = initUserInfo();
+					
+					if (userInfo && null != role) {
+						
+						//first time to set active 'Home' tab
+						NavigationMenu nMenu = getBean("navigationMenu", NavigationMenu.class);
+
+						if (nMenu != null) {
+
+							String servletPath = getServletPath();
+							if (servletPath != null && nMenu.getSelectedItem() != null
+									&& getServletPath().endsWith("home.jsf")) {
+								nMenu.setActive();
+							}
+						}
+					} else {
+						
+						//redirect to unauthorized page - ro role mapped
+						redirect("/unauthorized");
+					}
+				}
+				
+			} else {
+				redirect("/unauthorized");
+			}			
+		} else {
+			redirect("/unauthorized");
+		}
+		return "";
 	}
-	</style>
-  </head>
-  <body>
-     <div class="container">
-      <form class="form-signin" method="post" action="/login">
-        
-		<div align="center"><img src="images/top-image.png" /></div>
-		<br/><br/><br/>
-        <p>
-          <label for="username" class="sr-only">Username</label>
-          <input type="text" id="username" name="username" class="form-control" placeholder="Username" required autofocus>
-        </p>
-        <p>
-          <label for="password" class="sr-only">Password</label>
-          <input type="password" id="password" name="password" class="form-control" placeholder="Password" required>
-        </p>
-<input name="_csrf" type="hidden" value="c37f5772-9e40-40e5-9453-d50e632eb485" />
-        <button class="btn btn-lg btn-primary btn-block" type="submit" style="color:white; background-color:#2596be;cursor:pointer;">Sign in</button>
-      </form>
-</div>
-</body></html>
+	
+
+	/******************************************************************************
+	 * This is method to get a user info from the database
+	 * 
+	 * @param none
+	 * @return boolean whether a user info retrieved return true or false 
+	 * ----------------------------------------------------------------------------
+	 * Version	Date		Developer	Comments
+	 * ----------------------------------------------------------------------------
+	 * 1.0		12/25/2022	Saravanan	Initial code
+	 ******************************************************************************/
+	public boolean initUserInfo() {
+
+		EmployeeVO userVO = userService.getUser(empNbr);
+
+		if (userVO != null) {
+
+			role = userVO.get_emp_role_cd();
+			empNbr = userVO.get_emp_nbr();// getting emp-nbr
+			userId = empNbr;
+			firstName = userVO.get_emp_first_nm();
+			lastName = userVO.get_emp_last_nm();
+			
+			return true;
+			
+		} else {
+			return false;
+		}
+	}
+	
+
+	/******************************************************************************
+	 * This is method to check whether a user info is present in the request
+	 * 
+	 * @param none
+	 * @return boolean user validation is success return true or false
+	 * ----------------------------------------------------------------------------
+	 * Version	Date		Developer	Comments
+	 * ----------------------------------------------------------------------------
+	 * 1.0		12/25/2022	Saravanan	Initial code
+	 ******************************************************************************/
+	public boolean validateUserInfo() {
+		
+		if(userId != null && firstName != null && lastName != null && role != null)
+			return true;
+		else
+			return false;
+	}
+	
+	public String getServletPath() {
+		
+		String servletPath = null;
+		FacesContext context = FacesContext.getCurrentInstance();
+		
+		if(null != context) {
+			
+			HttpServletRequest req = (HttpServletRequest)context.getExternalContext().getRequest();
+			
+			if(null != req) servletPath = req.getServletPath();
+		}
+		return servletPath;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public <T> T getBean(String beanName, Class<T> beanclazz) {
+
+		if (SpringContext.getApplicationContext() != null) {
+			Object beanObject = SpringContext.getBean(beanName);
+			if(null != beanObject) {
+				return (T) beanObject;
+			} else {
+				return null;
+			}
+		} else {
+			return null;
+		}
+		
+	}
+	
+//	private boolean loginRedirect;
+//	
+//	public boolean isLoginRedirect() {
+//
+//		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//		
+//		if(!ObjectUtils.isEmpty(authentication) && !(authentication instanceof AnonymousAuthenticationToken)) {
+//			setLoginRedirect(true);
+//			return true;			
+//		} else {
+//			return false;
+//		}
+//	}
+//
+//	public void setLoginRedirect(boolean loginRedirect) {
+//		this.loginRedirect = loginRedirect;
+//	}
+//
+//	public void loginRedirect(Principal principal)  {
+//		
+//		if(!ObjectUtils.isEmpty(principal)) {
+//			
+//			DefaultOidcUser defaultOidcUser = (DefaultOidcUser) principal;
+//			if(!ObjectUtils.isEmpty(defaultOidcUser)) {
+//				
+//				Map<String , Object> userDetails = defaultOidcUser.getAttributes();
+//				if(!ObjectUtils.isEmpty(userDetails)) {
+//					userDetails.forEach((key, value) -> {
+//						System.out.println(key + ":::" + value);
+//					});
+//				}
+//			}
+//			redirect("home");
+//			
+//		} else {
+//			redirect("error");
+//		}
+//	    redirect(null);
+//	}
+}
+
